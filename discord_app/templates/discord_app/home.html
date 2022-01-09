@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/csss.css">
+</head>
+<body>
+    {% extends 'main.html' %}
+    
+    {% block content %}
+    
+    <h1>Home page</h1>
+    
+    <div><a href="{% url 'create_room' %}"><h2>Create room</h2></a>
+        <div>
+            {%for room in room%}
+            <div>
+                <a href="{% url 'edit_room' room.id %}">Edit</a>
+                <p><a href="{% url 'delete_room' room.id %}">Delete</a></p>
+                <span>@{{room.host.username}}</span>
+                <h4>{{ room.id }} -- <a href="{% url 'room' room.id %}">{{ room.name }}</a></h4>
+                <small>{{room.topic.name}}</small>
+                <hr>
+            </div>
+            {%endfor%}
+        </div>
+    </div>
+    
+    {% endblock %}
+</body>
+</html>
