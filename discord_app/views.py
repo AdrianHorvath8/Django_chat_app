@@ -1,20 +1,25 @@
 
+from email import message
 import imp
+import re
 from django.shortcuts import render,redirect
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate,login,logout
 from django.http import HttpResponse
 from django.contrib import messages
+from django.contrib.auth.forms import UserCreationForm
 from discord_app.forms import RoomForm
-from .models import Room, Topic
+from .models import Room, Topic, Message
 
 def login_page(request):
     if request.user.is_authenticated:
         return redirect("home")
+
+    page= "login"
     
     if request.method == "POST":
-        username=request.POST.get("username")
+        username=request.POST.get("username").lower()
         password=request.POST.get("password")
 
         
@@ -27,13 +32,30 @@ def login_page(request):
             return redirect("home")
         else:
             messages.error(request, 'Username or Password does not exist')
-    context={}
+    context={"page":page}
     return render(request,"discord_app/login_register.html",context)
 
 
 def lougout_user(request):
     logout(request)
     return redirect("home")
+
+def register_page(request):
+    form=UserCreationForm()
+    if request.method == "POST":
+        form=UserCreationForm(request.POST)
+        if form.is_valid:
+            user =form.save(commit=False)
+            user.username=user.username.lower()
+            user.save()
+            login(request,user)
+            return redirect("home")
+        else:
+            messages.error(request,"Issue while registration")
+
+
+    context={"form":form}
+    return render(request,"discord_app/login_register.html",context)
 
 def home(request):
     q=request.GET.get("q") if request.GET.get("q")!= None else ""
@@ -50,7 +72,21 @@ def home(request):
 
 def room(request,pk):
     room=Room.objects.get(id=pk)
-    context={"room":room}
+    room_message= room.message_set.all()
+    participants=room.participants.all()
+
+    if request.method=="POST":
+        message=Message.objects.create(
+            user=request.user,
+            room=room,
+            body=request.POST.get("body")
+        )
+        room.participants.add(request.user)
+        return redirect("room",pk=room.id)
+
+    
+
+    context={"room":room,"room_message":room_message,"participants":participants}
     return render(request,"discord_app/room.html",context)
 
 @login_required(login_url="login")
@@ -94,3 +130,16 @@ def delete_room(request,pk):
         room.delete()
         return redirect("home")
     return render(request,"discord_app/delete.html",{"obj":room})
+
+
+@login_required(login_url="login")
+def delete_message(request,pk):
+    message=Message.objects.get(id=pk)
+
+    if request.user != message.user:
+        return HttpResponse("You are not allowed here !!")
+
+    if request.method=="POST":
+        message.delete()
+        return redirect("home")
+    return render(request,"discord_app/delete.html",{"obj":message})
