@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
 from discord_app.forms import RoomForm
-from .models import Room, Topic, Message
+from .models import Room, Topic, Message, User
 
 def login_page(request):
     if request.user.is_authenticated:
@@ -67,7 +67,8 @@ def home(request):
 
     room_count=rooms.count()
     topics=Topic.objects.all()
-    context={"room":rooms,"topics":topics,"room_count":room_count}
+    activitys=Message.objects.filter(Q(room__topic__name__icontains=q))
+    context={"room":rooms,"topics":topics,"room_count":room_count,"activitys":activitys}
     return render(request,"discord_app/home.html",context)
 
 def room(request,pk):
@@ -92,14 +93,29 @@ def room(request,pk):
 @login_required(login_url="login")
 def create_room(request):
     form=RoomForm()
-    if request.method== "POST":
+    if request.method== "POST":        
         form= RoomForm(request.POST)
     if form.is_valid():
-        form.save()
+        room= form.save(commit=False)
+        room.host=request.user
+        room.save()
         return redirect("home")
 
     context={"form":form}
     return render(request,"discord_app/room_form.html",context)
+
+def user_page(request,pk):
+    user=User.objects.get(id=pk)
+    rooms=user.room_set.all()
+    topics=Topic.objects.all()
+    activitys=user.message_set.all()
+    
+
+
+
+    context={"user":user,"topics":topics,"room":rooms,"activitys":activitys}
+    return render(request,"discord_app/user_page.html",context)
+
 
 @login_required(login_url="login")
 def edit_room(request,pk):
