@@ -4,6 +4,7 @@ from django.urls import path
 from django.urls.conf import include
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("",include("discord_app.urls"))
+    path("",include("discord_app.urls")),
+    path("api/",include("discord_app.api.urls"))
     
 ]
